@@ -1,0 +1,4 @@
+export type Sale = {id:string;product_id:string;product_name:string;category:string;quantity:number;unit_price:number;total:number;cost_total:number;fee_total:number;sold_on:string;cancelled:number;created_at:string};
+export const today = ()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+export function validDate(value:unknown):value is string{return typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(Date.parse(value))&&new Date(value+'T12:00:00Z').toISOString().slice(0,10)===value;}
+export function summarize(sales:Sale[]){return sales.filter(s=>!s.cancelled).reduce((a,s)=>({revenue:a.revenue+s.total,cost:a.cost+s.cost_total,fees:a.fees+s.fee_total,profit:a.profit+s.total-s.cost_total-s.fee_total,units:a.units+s.quantity,records:a.records+1}),{revenue:0,cost:0,fees:0,profit:0,units:0,records:0});}

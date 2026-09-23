@@ -1,0 +1,4 @@
+'use client';
+import {useActionState} from 'react';
+import {login} from './actions';
+export default function LoginForm(){const [state,action,pending]=useActionState(login,{error:''});return <form action={action} className="login-form"><label className="field">E-mail<input className="plain-input" name="email" type="email" autoComplete="username" required/></label><label className="field">Senha<input className="plain-input" name="password" type="password" autoComplete="current-password" required/></label>{state.error&&<p className="error-box" role="alert">{state.error}</p>}<button className="primary" disabled={pending}>{pending?'Entrando…':'Entrar no meu ateliê'}</button><p className="muted">Acesso exclusivo para contas cadastradas pela loja. Para recuperar o acesso, fale com quem administra o ateliê.</p></form>;}
