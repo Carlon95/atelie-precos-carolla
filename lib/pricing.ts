@@ -1,7 +1,7 @@
 export const categories = ['Brincos', 'Colares', 'Pulseiras', 'Anéis', 'Acessórios de cabelo', 'Outros'];
 export const keys = ['purchase', 'freight', 'quantity', 'packaging', 'overhead', 'fixedFee', 'fee', 'tax', 'margin', 'sale'] as const;
 export type Values = Record<typeof keys[number], number>;
-export type Product = Values & {id:string; name:string; category:string; photo:string|null; updated_at:string; stock:number; stock_min:number};
+export type Product = Values & {id:string; name:string; sku:string|null; category:string; photo:string|null; updated_at:string; stock:number; stock_min:number};
 export const initial = {purchase:0,freight:0,quantity:1,packaging:0,overhead:0,fixedFee:0,fee:0,tax:0,margin:40,sale:0};
 export const money = (v:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
 export function calculate(v:Values) {
