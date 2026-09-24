@@ -4,6 +4,7 @@ create table public.products (
  id uuid primary key default gen_random_uuid(),
  owner uuid not null references auth.users(id),
  name text not null check(length(name) between 1 and 120),
+ sku text constraint products_sku_valid check(sku is null or (length(sku) between 1 and 64 and sku=btrim(sku) and sku !~ '[[:cntrl:]]')),
  category text not null,
  data jsonb not null,
  photo text,
@@ -11,6 +12,7 @@ create table public.products (
  stock integer not null default 0 check(stock>=0),
  stock_min integer not null default 3 check(stock_min between 0 and 1000000)
 );
+create unique index products_owner_sku_idx on public.products(owner,lower(sku)) where sku is not null;
 create index products_owner_idx on public.products(owner,updated_at desc);
 create table public.sales (
  id text primary key,
@@ -35,8 +37,8 @@ create policy sales_owner on public.sales for select to authenticated using(owne
 -- O navegador não pode alterar vendas nem saldo diretamente.
 revoke all on public.products,public.sales from anon,authenticated;
 grant select,delete on public.products to authenticated;
-grant insert(id,owner,name,category,data,photo,updated_at) on public.products to authenticated;
-grant update(name,category,data,photo,updated_at) on public.products to authenticated;
+grant insert(id,owner,name,sku,category,data,photo,updated_at) on public.products to authenticated;
+grant update(name,sku,category,data,photo,updated_at) on public.products to authenticated;
 grant select on public.sales to authenticated;
 
 create function public.adjust_stock(p_id uuid,p_stock integer,p_min integer,p_expected integer)
