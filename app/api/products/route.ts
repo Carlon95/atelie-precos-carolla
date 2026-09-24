@@ -1,5 +1,6 @@
 import {identity,failure,sameOrigin,check,bucketName} from '@/lib/storage';
 import {calculate,keys,categories,type Values} from '@/lib/pricing';
+import {parseSku} from '@/lib/sku';
 export const dynamic='force-dynamic';
 function present(row:Record<string,unknown>){const {data,owner,...rest}=row;void owner;return {...rest,...data as object,photo:row.photo?`/api/photos/${row.id}?v=${encodeURIComponent(String(row.updated_at))}`:null};}
 export async function GET(){try{const {client,owner}=await identity();let rows:Record<string,unknown>[]=[];for(let offset=0;;offset+=1000){const {data,error}=await client.from('products').select('*').eq('owner',owner).order('updated_at',{ascending:false}).order('id').range(offset,offset+999);check(error);rows.push(...data!);if(data!.length<1000)break;}return Response.json(rows.map(present),{headers:{'Cache-Control':'no-store'}});}catch(e){return failure(e);}}
@@ -7,7 +8,8 @@ export async function POST(request:Request){const context=await identity().catch
  if(!sameOrigin(request))return Response.json({error:'Origem inválida.'},{status:403});
  if(Number(request.headers.get('content-length')||0)>3.5*1024*1024)return Response.json({error:'Envie uma foto de até 3 MB.'},{status:413});
  const form=await request.formData();let input;try{input=JSON.parse(String(form.get('data')));}catch{return Response.json({error:'Dados inválidos.'},{status:400});}
- if(!input||typeof input!=='object')return Response.json({error:'Dados inválidos.'},{status:400});
+ if(!input||typeof input!=='object'||Array.isArray(input))return Response.json({error:'Dados inválidos.'},{status:400});
+ let sku:string|null;try{sku=parseSku(input.sku);}catch(e){return Response.json({error:(e as Error).message},{status:400});}
  const name=String(input.name||'').trim(),category=String(input.category||'');const values=Object.fromEntries(keys.map(k=>[k,input[k]])) as Values;
  if(!name||name.length>120||!categories.includes(category)||keys.some(k=>typeof values[k]!=='number'||values[k]>10000000)||!calculate(values).valid)return Response.json({error:'Revise o nome, os custos e as porcentagens.'},{status:400});
  const id=input.id?String(input.id):crypto.randomUUID();
@@ -20,9 +22,9 @@ export async function POST(request:Request){const context=await identity().catch
  if(!signature)return Response.json({error:'O arquivo não é uma imagem válida.'},{status:400});
  const path=`${owner}/${crypto.randomUUID()}`;const {error}=await client.storage.from(bucketName).upload(path,bytes,{contentType:file.type,upsert:false});check(error);uploaded=path;photo=path;
  }
- const update={name,category,data:values,photo,updated_at:new Date().toISOString()};
+ const update={name,category,...(Object.hasOwn(input,'sku')||!old?{sku}:{}),data:values,photo,updated_at:new Date().toISOString()};
  const result=old?await client.from('products').update(update).eq('id',id).eq('owner',owner).select('*').single():await client.from('products').insert({id,owner,...update}).select('*').single();check(result.error);uploaded=null;
  if(old?.photo&&old.photo!==photo)await client.storage.from(bucketName).remove([old.photo]);
  return Response.json(present(result.data));
- }catch(e){if(uploaded)await client.storage.from(bucketName).remove([uploaded]);return failure(e);}}
+ }catch(e){if(uploaded)await client.storage.from(bucketName).remove([uploaded]);if(e&&typeof e==='object'&&'code' in e&&e.code==='23505'&&'message' in e&&String(e.message).includes('products_owner_sku_idx'))return Response.json({error:'Este SKU já está cadastrado em outro produto. Use um código diferente.'},{status:409});return failure(e);}}
 export async function DELETE(request:Request){try{const {client,owner}=await identity();if(!sameOrigin(request))return Response.json({error:'Origem inválida.'},{status:403});const {id}=await request.json();const {data,error}=await client.from('products').delete().eq('id',String(id)).eq('owner',owner).select('photo').maybeSingle();if(error?.code==='23503')return Response.json({error:'Este produto tem vendas registradas e deve ser mantido para preservar o histórico.'},{status:409});check(error);if(!data)return Response.json({error:'Produto não encontrado.'},{status:404});if(data.photo)await client.storage.from(bucketName).remove([data.photo]);return Response.json({ok:true});}catch(e){return failure(e);}}
