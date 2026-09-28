@@ -29,3 +29,12 @@ O SKU é opcional, tem até 64 caracteres e é único por conta (sem diferenciar
 - Meus produtos e Estoque permitem combinar nome/SKU, categoria e estoque baixo (inclui saldo zerado e igual ao mínimo). O CSV de estoque inclui SKU e respeita os filtros; os indicadores mostram o estoque total.
 - Testes de regras: `node --experimental-strip-types --test tests/product-filters.mjs`.
 - Após instalar PGlite conforme acima: `node tests/database.mjs` e `node tests/sku-database.mjs`.
+
+
+## Cadastro em sequência e relatórios
+
+- Na precificação, marque **Manter informações na próxima peça** e use **Salvar e cadastrar próxima**. A próxima peça reaproveita categoria, compra, embalagem, frete, quantidade, despesas, taxas e margem durante a sessão. Nome, SKU, foto e preço manual são limpos para evitar duplicar a identificação e recalcular o preço sugerido. Desmarque a opção ou use **Limpar todos os campos** para voltar aos valores iniciais. Se o salvamento falhar, o formulário é preservado.
+- Em **Produtos** e **Estoque**, **Relatório PDF** apresenta os produtos filtrados, SKU, custos, preços, saldo e situação. Os totais do relatório se referem apenas à seleção.
+- Em **Vendas**, aplique o período e clique em **Relatório PDF**. Vendas canceladas aparecem identificadas, sem compor os totais.
+- Na prévia, clique em **Salvar em PDF / imprimir** e escolha **Salvar como PDF** ou sua impressora na janela do navegador. A impressão usa A4 em paisagem, com cabeçalho da tabela repetido. No celular, deslize a prévia horizontalmente para consultar todas as colunas. Não usa serviços externos para gerar o relatório nem exige mudança no banco.
+- Testes: `node --test tests/pricing-workflow.mjs tests/product-filters.mjs`.
